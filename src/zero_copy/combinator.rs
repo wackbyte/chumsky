@@ -410,6 +410,66 @@ where
     go_extra!();
 }
 
+#[derive(Copy, Clone)]
+pub struct And<A, B> {
+    pub(crate) parser: A,
+    pub(crate) and: B,
+}
+
+impl<'a, I, E, S, A, B> Parser<'a, I, E, S> for And<A, B>
+where
+    I: Input + ?Sized,
+    E: Error<I::Token>,
+    S: 'a,
+    A: Parser<'a, I, E, S>,
+    B: Parser<'a, I, E, S>,
+{
+    type Output = A::Output;
+
+    fn go<M: Mode>(&self, inp: &mut InputRef<'a, '_, I, E, S>) -> PResult<M, Self::Output, E> {
+        let before = inp.save();
+        match self.and.go::<Check>(inp) {
+            Ok(_) => {
+                inp.rewind(before);
+                self.parser.go::<M>(inp)
+            }
+            Err(e) => Err(e),
+        }
+    }
+
+    go_extra!();
+}
+
+#[derive(Copy, Clone)]
+pub struct Not<A, B> {
+    pub(crate) parser: A,
+    pub(crate) not: B,
+}
+
+impl<'a, I, E, S, A, B> Parser<'a, I, E, S> for Not<A, B>
+where
+    I: Input + ?Sized,
+    E: Error<I::Token>,
+    S: 'a,
+    A: Parser<'a, I, E, S>,
+    B: Parser<'a, I, E, S>,
+{
+    type Output = A::Output;
+
+    fn go<M: Mode>(&self, inp: &mut InputRef<'a, '_, I, E, S>) -> PResult<M, Self::Output, E> {
+        let before = inp.save();
+        match self.not.go::<Check>(inp) {
+            Err(_) => {
+                inp.rewind(before);
+                self.parser.go::<M>(inp)
+            }
+            Ok(_) => Err(E::create()),
+        }
+    }
+
+    go_extra!();
+}
+
 pub trait Container<T>: Default {
     fn push(&mut self, item: T);
 }

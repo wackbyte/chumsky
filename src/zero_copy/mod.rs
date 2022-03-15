@@ -319,6 +319,26 @@ pub trait Parser<'a, I: Input + ?Sized, E: Error<I::Token> = (), S: 'a = ()> {
         OrNot { parser: self }
     }
 
+    fn and<B: Parser<'a, I, E, S>>(self, and: B) -> And<Self, B>
+    where
+        Self: Sized,
+    {
+        And {
+            parser: self,
+            and,
+        }
+    }
+
+    fn not<B: Parser<'a, I, E, S>>(self, not: B) -> Not<Self, B>
+    where
+        Self: Sized,
+    {
+        Not {
+            parser: self,
+            not,
+        }
+    }
+
     fn repeated(self) -> Repeated<Self, I, (), E, S>
     where
         Self: Sized,
