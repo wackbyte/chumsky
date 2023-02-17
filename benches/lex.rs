@@ -66,6 +66,12 @@ fn bench_lex(c: &mut Criterion) {
             assert!(black_box(logos::lexer(black_box(SAMPLE))).all(|t| t != logos::Token::Error))
         })
     });
+
+    c.bench_function("lex_logos_bare", |b| {
+        b.iter(|| {
+            assert!(black_box(logos_bare::lexer(black_box(SAMPLE))).all(|t| t != logos_bare::Token::Error))
+        })
+    });
 }
 
 criterion_group!(benches, bench_lex);
@@ -89,9 +95,9 @@ mod logos {
 
     #[derive(Logos, Debug, Clone, PartialEq)]
     pub enum Token<'a> {
-        #[token("null")]
+        #[token(b"null")]
         Null,
-        #[regex("true|false", to_bool)]
+        #[regex(b"true|false", to_bool)]
         Bool(bool),
         #[regex(br#""([^\\"]|\\[\\"bfnrt/])*""#)]
         Str(&'a [u8]),
@@ -120,6 +126,48 @@ mod logos {
     }
 
     pub fn lexer(src: &[u8]) -> Lexer<'_, Token<'_>> {
+        Token::lexer(src)
+    }
+}
+
+mod logos_bare {
+    use logos::{Lexer, Logos};
+
+    #[derive(Logos, Debug, Clone, PartialEq)]
+    pub enum Token {
+        #[token(b"null")]
+        Null,
+        #[regex(b"false")]
+        False,
+        #[token(b"true")]
+        True,
+        #[regex(br#""([^\\"]|\\[\\"bfnrt/])*""#)]
+        Str,
+        #[regex(br"-?([1-9][0-9]*|0)(\.[0-9]*)?([eE][+-]?[0-9]*)?")]
+        Num,
+        #[regex(br"[a-zA-Z_][a-zA-Z0-9_]*")]
+        Ident,
+        #[token(b"<")]
+        Less,
+        #[token(b">")]
+        More,
+        #[token(b"<=")]
+        LessEq,
+        #[token(b">=")]
+        MoreEq,
+        #[token(b"(")]
+        OpenParen,
+        #[token(b")")]
+        CloseParen,
+        #[token(b",")]
+        Comma,
+
+        #[regex(br"\s", logos::skip)]
+        #[error]
+        Error,
+    }
+
+    pub fn lexer(src: &[u8]) -> Lexer<'_, Token> {
         Token::lexer(src)
     }
 }
